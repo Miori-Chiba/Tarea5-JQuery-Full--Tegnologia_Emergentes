@@ -1,1 +1,0 @@
-# Tarea5-JQuery-Full--Tegnologia_Emergentes
