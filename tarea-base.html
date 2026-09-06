@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistema de Usuarios</title>
+
+  <!-- jQuery -->
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+
+  <!-- jQuery Validation -->
+  <script src="https://cdn.jsdelivr.net/npm/jquery-validation@1.19.5/dist/jquery.validate.min.js"></script>
+
+  <!-- DataTables -->
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
+  <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 30px;
+      background: #f8f9fa;
+      color: #333;
+      line-height: 1.6;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    h1 {
+      text-align: center;
+      color: #2c3e50;
+      margin-bottom: 30px;
+    }
+    .card {
+      background: white;
+      padding: 25px;
+      margin: 20px 0;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      border: 1px solid #e9ecef;
+    }
+    h2 {
+      color: #495057;
+      border-bottom: 2px solid #007bff;
+      padding-bottom: 8px;
+      margin-bottom: 20px;
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: 500;
+      color: #495057;
+    }
+    input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 2px solid #dee2e6;
+      border-radius: 6px;
+      font-size: 14px;
+      transition: border-color 0.3s;
+    }
+    input:focus {
+      outline: none;
+      border-color: #007bff;
+      box-shadow: 0 0 0 3px rgba(0,123,255,0.1);
+    }
+    input.error {
+      border-color: #dc3545;
+    }
+    label.error {
+      color: #dc3545;
+      font-size: 0.9em;
+      margin-top: 5px;
+      font-weight: normal;
+    }
+    button {
+      padding: 10px 20px;
+      margin: 10px 5px 10px 0;
+      cursor: pointer;
+      border: none;
+      border-radius: 6px;
+      background: #007bff;
+      color: white;
+      font-weight: 500;
+      transition: background-color 0.3s;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+    .alert {
+      padding: 12px;
+      border-radius: 6px;
+      margin: 15px 0;
+    }
+    .alert-success {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    .alert-danger {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+    table {
+      width: 100% !important;
+      margin-top: 15px;
+    }
+    .todo {
+      background: #fff3cd;
+      border: 1px solid #ffeaa7;
+      padding: 15px;
+      border-radius: 6px;
+      margin: 15px 0;
+    }
+    .todo h3 {
+      color: #856404;
+      margin-top: 0;
+    }
+    .todo ul {
+      margin: 10px 0;
+      padding-left: 20px;
+    }
+    .todo li {
+      margin: 5px 0;
+    }
+  </style>
+</head>
+<>
+  <div class="container">
+    <h1>Sistema de Registro de Usuarios</h1>
+    
+
+    <!-- Formulario de Registro -->
+    <div class="card">
+      <h2>Registrar Nuevo Usuario</h2>
+      
+      <form id="form-usuario">
+        <div class="form-group">
+          <label for="nombre">Nombre Completo:</label>
+          <input type="text" id="nombre" name="nombre" placeholder="Mínimo 3 caracteres">
+        </div>
+
+        <div class="form-group">
+          <label for="email">Email:</label>
+          <input type="email" id="email" name="email" placeholder="ejemplo@correo.com">
+            <span id = "error-email"></span>
+        </div>
+
+        <div class="form-group">
+          <label for="edad">Edad:</label>
+          <input type="number" id="edad" name="edad" placeholder="Entre 18 y 99 años" min="18" max="99">
+        </div>
+
+        <button type="submit">Registrar Usuario</button>
+        <button type="button" id="limpiar-form">Limpiar Formulario</button>
+      </form>
+
+      <div id="mensaje" style="display: none;"></div>
+    </div>
+
+    <!-- Tabla de Usuarios -->
+    <div class="card">
+      <h2>Lista de Usuarios Registrados</h2>
+      
+      <table id="tabla-usuarios" class="display" style="width:100%">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Nombre</th>
+            <th>Email</th>
+            <th>Edad</th>
+            <th>Fecha Registro</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td colspan="5" style="text-align:center; color:#6c757d; font-style:italic;">
+              No hay usuarios registrados. Completa el formulario para agregar usuarios.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+
+    $(document).ready(function() {
+      // Obtiene los usuarios guardados en localStage o crea un arreglo vacio si no hay ningun usuario.
+      let usuarios = JSON.parse(localStorage.getItem("usuarios")) || [];
+      let contadorId = 1;
+      let tabla = null;
+
+      //Verifica que los datos del formulario cumplan la regla establecida.
+      //Si no cumple muestra los mensajes.
+       $("#form-usuario").validate({
+         rules: {
+           nombre :{
+            required: true,
+            minlength: 3,
+           },
+
+           email :{
+            required: true,
+            email: true,
+           },
+
+           edad :{
+            required: true,
+            min: 18,
+            max: 99,
+           },
+        },
+         messages: {
+            nombre:{
+                required: "Ingrese su nombre.",
+                minlength: "Ingrese un nombre minimo con 3 caracteres."
+            },
+            email: {
+                required: "Ingrese su correo electronico.",
+                email: "No tiene el formato de un correo. Ingrese de nuevo.",
+            },
+            edad: {
+                required: "Ingrese su edad.",
+                number: "Ingrese solamente numeros",
+                min: "Debe tener al menos 18 años.",
+                max: "La edad maxima permitida es de 99 años."
+            },
+        },
+         submitHandler: function(form) {
+           registrarUsuario();
+           return false;
+         },
+       });
+    
+
+    //Funcion qu registra los usuarios
+      function registrarUsuario() {
+        // Obtener valores del formulario
+        const nombre = $("#nombre").val();
+        const email = $("#email").val();
+        const edad = parseInt($("#edad").val());
+
+        //verifica si un correo ya existe. 
+        if(emailExiste(email)){
+            $("#error-email").text("El correo ya existe. Pruebe con otro correo.");
+            return;
+        }
+      //Simula el registro del usuario
+        setTimeout(function(){
+            const usuario = crearUsuario(nombre, email, edad);
+            usuarios.push(usuario);
+        //Guarda el arreglo actualizado en local stage.
+            localStorage.setItem("usuarios", JSON.stringify(usuarios));
+            actualizarTabla();
+            $("#form-usuario")[0].reset();
+            console.log("Se ha actualizado la tabla.");
+        }, 1000)
+
+        //Funcion que crea un objeto llamado usuario.
+        function crearUsuario(nombre, email, edad){
+            const usuario = {
+                id: contadorId++,
+                nombre: nombre,
+                email: email,
+                edad: edad,
+                fechaRegistro: new Date().toLocaleTimeString('es-Es'),
+            }
+            return usuario;
+        }
+      }
+
+      //Funcion que verifica si el correo ya existe.
+      function emailExiste(email) {
+        for(let usuario of usuarios){
+            if(email === usuario.email){
+                return true;
+            }
+        }
+        return false;
+      }
+
+      //Funcion que inicializa la tabla de usuarios
+      function inicializarDataTable() {
+            tabla = $("#tabla-usuarios").DataTable({
+            data: usuarios,
+
+            columns:[
+                {data: "id"},
+                {data: "nombre"},
+                {data: "email"},
+                {data: "edad"},
+                {data: "fechaRegistro"}
+            ],
+
+                pageLength: 7,
+                language: {
+                    search: "Buscar",
+                    paginate: {
+                        previous: "Anterior",
+                        next: "Siguiente"
+                    }
+                }
+
+        })
+      }
+
+      //Funcion que actualiza la tabla.
+      function actualizarTabla() {
+        tabla.clear();
+        tabla.rows.add(usuarios);
+        tabla.draw();
+      }
+
+
+      function mostrarMensaje(texto, tipo) {
+        const claseAlert = tipo === "success" ? "alert-success" : "alert-danger";
+        
+        $("#mensaje")
+          .removeClass("alert-success alert-danger")
+          .addClass(`alert ${claseAlert}`)
+          .html(texto)
+          .show();
+
+        if (tipo === "success") {
+          setTimeout(() => $("#mensaje").hide(), 3000);
+        }
+      }
+
+
+      $("#limpiar-form").click(function() {
+        $("#form-usuario")[0].reset();
+        $("#mensaje").hide();
+      });
+
+
+      //Se inicializa la tabla
+      inicializarDataTable()
+
+    });
+  </script>
+</body>
+</html>
